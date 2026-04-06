@@ -2,34 +2,30 @@
 from __future__ import annotations
 import json
 import logging
-
 from homeassistant.components import mqtt
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.const import UnitOfTemperature
-
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     base = entry.data.get("mqtt_base_topic", "sproeituin")
     name = entry.data.get("device_name", "Sproeituin")
-
     entities = [
         SproeituinStatusSensor(hass, entry, base, name),
-        SproeituinJsonSensor(hass, entry, base, name, "temp",     "Temperatuur",      "°C",    SensorDeviceClass.TEMPERATURE,  SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "humidity", "Luchtvochtigheid", "%",     SensorDeviceClass.HUMIDITY,     SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "vpd",      "VPD",              "kPa",   None,                           SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "moisture", "Bodemvochtigheid", None,    None,                           SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "water_ml", "Water sessie",     "ml",    None,                           SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "rssi",     "WiFi signaal",     "dBm",   SensorDeviceClass.SIGNAL_STRENGTH, SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "temp",      "Temperatuur",    "\u00b0C", SensorDeviceClass.TEMPERATURE,    SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "humidity",  "Luchtvochtigheid", "%",      SensorDeviceClass.HUMIDITY,       SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "vpd",       "VPD",            "kPa",      None,                             SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "moisture",  "Bodemvochtigheid", None,     None,                             SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "water_ml",  "Water sessie",   "ml",       None,                             SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "rssi",      "WiFi signaal",   "dBm",      SensorDeviceClass.SIGNAL_STRENGTH, SensorStateClass.MEASUREMENT),
         SproeituinPositieSensor(hass, entry, base, name, "x", "Positie X", "mm"),
         SproeituinPositieSensor(hass, entry, base, name, "y", "Positie Y", "mm"),
         SproeituinWaterlogSensor(hass, entry, base, name),
+        SproeituinLogSensor(hass, entry, base, name),
     ]
     async_add_entities(entities)
 
@@ -119,3 +115,20 @@ class SproeituinWaterlogSensor(SensorEntity):
             except Exception:
                 pass
         await mqtt.async_subscribe(self.hass, f"{self._base}/waterlog", message_received)
+
+
+class SproeituinLogSensor(SensorEntity):
+    def __init__(self, hass, entry, base, name):
+        self.hass = hass
+        self._base = base
+        self._attr_name = f"{name} Log"
+        self._attr_unique_id = f"{entry.entry_id}_log"
+        self._attr_icon = "mdi:text-box-outline"
+        self._attr_native_value = None
+
+    async def async_added_to_hass(self):
+        @callback
+        def message_received(msg):
+            self._attr_native_value = msg.payload
+            self.async_write_ha_state()
+        await mqtt.async_subscribe(self.hass, f"{self._base}/log", message_received)
