@@ -33,10 +33,6 @@ class ZoneSwitch(SwitchEntity, RestoreEntity):
         self.hass = hass
         self._base = base
         self._zone_id = zone_id
-        self._naam = naam
-        self._x = x
-        self._y = y
-        self._ml = ml
         self._attr_name = naam
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone_id}"
         self._attr_icon = "mdi:flower"
@@ -58,13 +54,5 @@ class ZoneSwitch(SwitchEntity, RestoreEntity):
         await self._publish(False)
 
     async def _publish(self, active: bool):
-        # Stuur enkel id en active — Arduino behoudt de rest van de zone-instellingen
-        payload = json.dumps({
-            "id":     self._zone_id,
-            "name":   self._naam,
-            "x":      self._x,
-            "y":      self._y,
-            "ml":     self._ml,
-            "active": active
-        })
+        payload = json.dumps({"id": self._zone_id, "active": active})
         await mqtt.async_publish(self.hass, f"{self._base}/cmd/zone", payload)
