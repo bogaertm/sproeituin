@@ -11,19 +11,20 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     base = entry.data.get("mqtt_base_topic", "sproeituin")
     name = entry.data.get("device_name", "Sproeituin")
     entities = [
         SproeituinStatusSensor(hass, entry, base, name),
-        SproeituinJsonSensor(hass, entry, base, name, "temp",      "Temperatuur",    "\u00b0C", SensorDeviceClass.TEMPERATURE,    SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "humidity",  "Luchtvochtigheid", "%",      SensorDeviceClass.HUMIDITY,       SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "vpd",       "VPD",            "kPa",      None,                             SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "moisture",  "Bodemvochtigheid", None,     None,                             SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "water_ml",  "Water sessie",   "ml",       None,                             SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "rssi",      "WiFi signaal",   "dBm",      SensorDeviceClass.SIGNAL_STRENGTH, SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "temp",     "Temperatuur",      "\u00b0C", SensorDeviceClass.TEMPERATURE,     SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "humidity", "Luchtvochtigheid", "%",        SensorDeviceClass.HUMIDITY,        SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "vpd",      "VPD",              "kPa",      None,                              SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "water_ml", "Water sessie",     "ml",       None,                              SensorStateClass.MEASUREMENT),
+        SproeituinJsonSensor(hass, entry, base, name, "rssi",     "WiFi signaal",     "dBm",      SensorDeviceClass.SIGNAL_STRENGTH, SensorStateClass.MEASUREMENT),
         SproeituinPositieSensor(hass, entry, base, name, "x", "Positie X", "mm"),
         SproeituinPositieSensor(hass, entry, base, name, "y", "Positie Y", "mm"),
+        SproeituinMoistureSensor(hass, entry, base, name),
         SproeituinWaterlogSensor(hass, entry, base, name),
         SproeituinLogSensor(hass, entry, base, name),
     ]
@@ -73,6 +74,33 @@ class SproeituinJsonSensor(SensorEntity):
         await mqtt.async_subscribe(self.hass, f"{self._base}/sensoren", message_received)
 
 
+class SproeituinMoistureSensor(SensorEntity):
+    """Bodemvochtigheid als % — converteert raw ADC 0-1023."""
+    def __init__(self, hass, entry, base, name):
+        self.hass = hass
+        self._base = base
+        self._attr_name = f"{name} Bodemvochtigheid"
+        self._attr_unique_id = f"{entry.entry_id}_moisture"
+        self._attr_native_unit_of_measurement = "%"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:water-percent"
+        self._attr_native_value = None
+
+    async def async_added_to_hass(self):
+        @callback
+        def message_received(msg):
+            try:
+                data = json.loads(msg.payload)
+                raw = data.get("moisture")
+                if raw is not None:
+                    pct = round((1 - int(raw) / 1023) * 100, 1)
+                    self._attr_native_value = pct
+                    self.async_write_ha_state()
+            except Exception:
+                pass
+        await mqtt.async_subscribe(self.hass, f"{self._base}/sensoren", message_received)
+
+
 class SproeituinPositieSensor(SensorEntity):
     def __init__(self, hass, entry, base, name, key, label, unit):
         self.hass = hass
@@ -110,7 +138,7 @@ class SproeituinWaterlogSensor(SensorEntity):
         def message_received(msg):
             try:
                 data = json.loads(msg.payload)
-                self._attr_native_value = f"{data.get('zone','?')}: {data.get('ml','?')}ml"
+                self._attr_native_value = f"{data.get('zone', '?')}: {data.get('ml', '?')}ml"
                 self.async_write_ha_state()
             except Exception:
                 pass
