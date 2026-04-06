@@ -48,14 +48,12 @@ zone_instellen:
           max: 9
     name:
       name: Naam
-      description: Naam van de plant
       required: true
       example: "Basilicum"
       selector:
         text:
     x:
       name: X positie (mm)
-      description: X positie in mm (0 tot 2000)
       required: true
       example: 200
       selector:
@@ -65,7 +63,6 @@ zone_instellen:
           unit_of_measurement: mm
     y:
       name: Y positie (mm)
-      description: Y positie in mm (0 tot 450)
       required: true
       example: 112
       selector:
@@ -75,7 +72,6 @@ zone_instellen:
           unit_of_measurement: mm
     ml:
       name: Water (ml)
-      description: Waterhoeveelheid per beurt in ml
       required: true
       example: 50
       selector:
@@ -85,21 +81,7 @@ zone_instellen:
           unit_of_measurement: ml
     active:
       name: Actief
-      description: Zone actief of niet
       required: true
       example: true
       selector:
         boolean:
-
-lcd_pagina:
-  name: LCD pagina
-  description: Wissel de weergave op het Grove LCD display.
-  fields:
-    pagina:
-      name: Pagina
-      description: Welke pagina tonen op het LCD
-      required: true
-      example: "status"
-      selector:
-        select:
-          options: ["status", "temp", "moisture", "water", "zone"]
