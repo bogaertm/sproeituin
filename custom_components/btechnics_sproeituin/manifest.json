@@ -1,0 +1,12 @@
+{
+  "domain": "btechnics_sproeituin",
+  "name": "Btechnics Sproeituin",
+  "version": "1.0.0",
+  "documentation": "https://github.com/bogaertm/sproeituin",
+  "issue_tracker": "https://github.com/bogaertm/sproeituin/issues",
+  "requirements": [],
+  "dependencies": ["mqtt"],
+  "codeowners": ["@bogaertm"],
+  "iot_class": "local_push",
+  "config_flow": true
+}

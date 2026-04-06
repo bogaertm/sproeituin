@@ -1,0 +1,18 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Btechnics Sproeituin instellen",
+        "description": "Configureer de verbinding met jouw Arduino sproeituin.",
+        "data": {
+          "device_name": "Naam van het apparaat",
+          "mqtt_base_topic": "MQTT basis topic"
+        }
+      }
+    },
+    "error": {},
+    "abort": {
+      "already_configured": "Dit apparaat is al geconfigureerd."
+    }
+  }
+}

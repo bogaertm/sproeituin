@@ -1,0 +1,105 @@
+start:
+  name: Sproei starten
+  description: Start een volledige sproei cyclus.
+
+stop:
+  name: Noodstop
+  description: Stop alle beweging en sluit de magneetklep.
+
+home:
+  name: Home positie
+  description: Rij de carriage terug naar de homing positie.
+
+jog:
+  name: Manueel bewegen
+  description: Beweeg de carriage manueel in X of Y richting.
+  fields:
+    as:
+      name: As
+      description: "Welke as bewegen: x of y"
+      required: true
+      example: "x"
+      selector:
+        select:
+          options: ["x", "y"]
+    mm:
+      name: Afstand (mm)
+      description: Afstand in mm. Positief = vooruit, negatief = achteruit.
+      required: true
+      example: 10
+      selector:
+        number:
+          min: -2000
+          max: 2000
+          unit_of_measurement: mm
+
+zone_instellen:
+  name: Zone instellen
+  description: Stel een plantzone in via MQTT.
+  fields:
+    id:
+      name: Zone ID
+      description: Zone nummer (0 tot 9)
+      required: true
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 9
+    name:
+      name: Naam
+      description: Naam van de plant
+      required: true
+      example: "Basilicum"
+      selector:
+        text:
+    x:
+      name: X positie (mm)
+      description: X positie in mm (0 tot 2000)
+      required: true
+      example: 200
+      selector:
+        number:
+          min: 0
+          max: 2000
+          unit_of_measurement: mm
+    y:
+      name: Y positie (mm)
+      description: Y positie in mm (0 tot 450)
+      required: true
+      example: 112
+      selector:
+        number:
+          min: 0
+          max: 450
+          unit_of_measurement: mm
+    ml:
+      name: Water (ml)
+      description: Waterhoeveelheid per beurt in ml
+      required: true
+      example: 50
+      selector:
+        number:
+          min: 0
+          max: 500
+          unit_of_measurement: ml
+    active:
+      name: Actief
+      description: Zone actief of niet
+      required: true
+      example: true
+      selector:
+        boolean:
+
+lcd_pagina:
+  name: LCD pagina
+  description: Wissel de weergave op het Grove LCD display.
+  fields:
+    pagina:
+      name: Pagina
+      description: Welke pagina tonen op het LCD
+      required: true
+      example: "status"
+      selector:
+        select:
+          options: ["status", "temp", "moisture", "water", "zone"]
