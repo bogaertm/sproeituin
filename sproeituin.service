@@ -1,0 +1,22 @@
+[Unit]
+Description=Sproeituin Controle Systeem - Btechnics
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin
+ExecStart=/home/admin/sproeituin-venv/bin/python3 /home/admin/sproeituin.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sproeituin
+
+# Herstart niet als het script bewust wordt gestopt (systemctl stop)
+KillSignal=SIGINT
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
