@@ -7,25 +7,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
-from .const import DOMAIN
-
-ZONES = [
-    (0, "Basilicum",       200,  112, 50),
-    (1, "Munt",            600,  112, 60),
-    (2, "Rozemarijn",     1000,  112, 40),
-    (3, "Tijm",           1400,  112, 35),
-    (4, "Peterselie",     1800,  112, 45),
-    (5, "Salie",           200,  337, 40),
-    (6, "Citroenmelisse",  600,  337, 55),
-    (7, "Oregano",        1000,  337, 40),
-    (8, "Bieslook",       1400,  337, 50),
-    (9, "Koriander",      1800,  337, 45),
-]
+from .const import DOMAIN, ZONES_DEFAULT
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     base = entry.data.get("mqtt_base_topic", "sproeituin")
-    async_add_entities([ZoneSwitch(hass, entry, base, *z) for z in ZONES])
+    async_add_entities([ZoneSwitch(hass, entry, base, *z) for z in ZONES_DEFAULT])
 
 
 class ZoneSwitch(SwitchEntity, RestoreEntity):
@@ -33,7 +20,7 @@ class ZoneSwitch(SwitchEntity, RestoreEntity):
         self.hass = hass
         self._base = base
         self._zone_id = zone_id
-        self._attr_name = naam
+        self._attr_name = f"Zone {zone_id} {naam}"
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone_id}"
         self._attr_icon = "mdi:flower"
         self._attr_is_on = True
