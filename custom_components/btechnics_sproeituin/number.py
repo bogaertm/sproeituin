@@ -45,7 +45,7 @@ class JogStapgrootte(NumberEntity, RestoreEntity):
 
 
 class DemoMl(NumberEntity, RestoreEntity):
-    """Hoeveelheid ml per plant bij demo sproei."""
+    """Demo ml — synct bidirectioneel met Pi via sproeituin/demo_ml."""
     def __init__(self, hass, entry, base, name):
         self.hass = hass
         self._base = base
@@ -66,6 +66,15 @@ class DemoMl(NumberEntity, RestoreEntity):
                 self._attr_native_value = int(float(last.state))
             except ValueError:
                 pass
+        # Sync vanuit Pi — Pi stuurt huidige demo_ml waarde bij opstart
+        @callback
+        def demo_ml_ontvangen(msg):
+            try:
+                self._attr_native_value = int(float(msg.payload))
+                self.async_write_ha_state()
+            except Exception:
+                pass
+        await mqtt.async_subscribe(self.hass, f"{self._base}/demo_ml", demo_ml_ontvangen)
 
     async def async_set_native_value(self, value: float) -> None:
         self._attr_native_value = int(value)
@@ -74,7 +83,7 @@ class DemoMl(NumberEntity, RestoreEntity):
 
 
 class ZoneMl(NumberEntity, RestoreEntity):
-    """Watervolume in ml voor een zone."""
+    """Watervolume in ml voor een zone — synct vanuit sproeituin/zones."""
     def __init__(self, hass, entry, base, zone_id, zone_naam, default_ml):
         self.hass = hass
         self._base = base
@@ -96,12 +105,10 @@ class ZoneMl(NumberEntity, RestoreEntity):
                 self._attr_native_value = int(float(last.state))
             except ValueError:
                 pass
-        # Sync met MQTT zones topic
         @callback
         def zones_ontvangen(msg):
             try:
-                import json as _json
-                zones = _json.loads(msg.payload)
+                zones = json.loads(msg.payload)
                 for z in zones:
                     if z.get("id") == self._zone_id:
                         self._attr_native_value = z.get("ml", self._attr_native_value)
