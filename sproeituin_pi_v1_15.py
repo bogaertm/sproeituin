@@ -22,7 +22,7 @@ except ImportError:
 MQTT_BROKER  = "192.168.1.117"
 MQTT_PORT    = 1883
 MQTT_USER    = "Sproeituin"
-MQTT_PASS    = "SproeituinDePinte9840"
+MQTT_PASS    = "JOUW_MQTT_WACHTWOORD"
 
 SERIAL_PORT    = "/dev/ttyACM0"
 SERIAL_BAUD    = 115200
