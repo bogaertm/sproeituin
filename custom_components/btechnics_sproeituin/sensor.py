@@ -17,15 +17,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     name = entry.data.get("device_name", "Sproeituin")
     entities = [
         SproeituinStatusSensor(hass, entry, base, name),
-        SproeituinJsonSensor(hass, entry, base, name, "temp",     "Temperatuur",      "\u00b0C", SensorDeviceClass.TEMPERATURE,     SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "humidity", "Luchtvochtigheid", "%",        SensorDeviceClass.HUMIDITY,        SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "vpd",      "VPD",              "kPa",      None,                              SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "water_ml", "Water sessie",     "ml",       None,                              SensorStateClass.MEASUREMENT),
-        SproeituinJsonSensor(hass, entry, base, name, "rssi",     "WiFi signaal",     "dBm",      SensorDeviceClass.SIGNAL_STRENGTH, SensorStateClass.MEASUREMENT),
         SproeituinPositieSensor(hass, entry, base, name, "x", "Positie X", "mm"),
         SproeituinPositieSensor(hass, entry, base, name, "y", "Positie Y", "mm"),
-        SproeituinMoistureSensor(hass, entry, base, name),
         SproeituinWaterlogSensor(hass, entry, base, name),
+        SproeituinWaterlogTotaalSensor(hass, entry, base, name),
+        SproeituinAlarmSensor(hass, entry, base, name),
+        SproeituinZonesSensor(hass, entry, base, name),
         SproeituinLogSensor(hass, entry, base, name),
     ]
     async_add_entities(entities)
@@ -46,59 +43,6 @@ class SproeituinStatusSensor(SensorEntity):
             self._attr_native_value = msg.payload
             self.async_write_ha_state()
         await mqtt.async_subscribe(self.hass, f"{self._base}/status", message_received)
-
-
-class SproeituinJsonSensor(SensorEntity):
-    def __init__(self, hass, entry, base, name, key, label, unit, device_class, state_class):
-        self.hass = hass
-        self._base = base
-        self._key = key
-        self._attr_name = f"{name} {label}"
-        self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_native_unit_of_measurement = unit
-        self._attr_device_class = device_class
-        self._attr_state_class = state_class
-        self._attr_native_value = None
-
-    async def async_added_to_hass(self):
-        @callback
-        def message_received(msg):
-            try:
-                data = json.loads(msg.payload)
-                val = data.get(self._key)
-                if val is not None:
-                    self._attr_native_value = round(float(val), 2)
-                    self.async_write_ha_state()
-            except Exception:
-                pass
-        await mqtt.async_subscribe(self.hass, f"{self._base}/sensoren", message_received)
-
-
-class SproeituinMoistureSensor(SensorEntity):
-    """Bodemvochtigheid als % — converteert raw ADC 0-1023."""
-    def __init__(self, hass, entry, base, name):
-        self.hass = hass
-        self._base = base
-        self._attr_name = f"{name} Bodemvochtigheid"
-        self._attr_unique_id = f"{entry.entry_id}_moisture"
-        self._attr_native_unit_of_measurement = "%"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_icon = "mdi:water-percent"
-        self._attr_native_value = None
-
-    async def async_added_to_hass(self):
-        @callback
-        def message_received(msg):
-            try:
-                data = json.loads(msg.payload)
-                raw = data.get("moisture")
-                if raw is not None:
-                    pct = round((1 - int(raw) / 1023) * 100, 1)
-                    self._attr_native_value = pct
-                    self.async_write_ha_state()
-            except Exception:
-                pass
-        await mqtt.async_subscribe(self.hass, f"{self._base}/sensoren", message_received)
 
 
 class SproeituinPositieSensor(SensorEntity):
@@ -128,7 +72,7 @@ class SproeituinWaterlogSensor(SensorEntity):
     def __init__(self, hass, entry, base, name):
         self.hass = hass
         self._base = base
-        self._attr_name = f"{name} Waterlog"
+        self._attr_name = f"{name} Laatste Sproei"
         self._attr_unique_id = f"{entry.entry_id}_waterlog"
         self._attr_icon = "mdi:water"
         self._attr_native_value = None
@@ -143,6 +87,89 @@ class SproeituinWaterlogSensor(SensorEntity):
             except Exception:
                 pass
         await mqtt.async_subscribe(self.hass, f"{self._base}/waterlog", message_received)
+
+
+class SproeituinWaterlogTotaalSensor(SensorEntity):
+    """Totaal water per plant uit waterlog/overzicht."""
+    def __init__(self, hass, entry, base, name):
+        self.hass = hass
+        self._base = base
+        self._attr_name = f"{name} Waterlog Overzicht"
+        self._attr_unique_id = f"{entry.entry_id}_waterlog_overzicht"
+        self._attr_icon = "mdi:chart-bar"
+        self._attr_native_value = None
+        self._extra = {}
+
+    @property
+    def extra_state_attributes(self):
+        return self._extra
+
+    async def async_added_to_hass(self):
+        @callback
+        def message_received(msg):
+            try:
+                data = json.loads(msg.payload)
+                self._extra = data
+                totaal = sum(v.get("totaal_ml", 0) for v in data.values())
+                self._attr_native_value = round(totaal, 1)
+                self.async_write_ha_state()
+            except Exception:
+                pass
+        await mqtt.async_subscribe(self.hass, f"{self._base}/waterlog/overzicht", message_received)
+
+
+class SproeituinAlarmSensor(SensorEntity):
+    def __init__(self, hass, entry, base, name):
+        self.hass = hass
+        self._base = base
+        self._attr_name = f"{name} Alarm"
+        self._attr_unique_id = f"{entry.entry_id}_alarm"
+        self._attr_icon = "mdi:alert"
+        self._attr_native_value = None
+
+    async def async_added_to_hass(self):
+        @callback
+        def message_received(msg):
+            try:
+                if msg.payload:
+                    data = json.loads(msg.payload)
+                    self._attr_native_value = f"{data.get('type','?')}: {data.get('bericht','?')}"
+                else:
+                    self._attr_native_value = None
+                self.async_write_ha_state()
+            except Exception:
+                self._attr_native_value = msg.payload
+                self.async_write_ha_state()
+        await mqtt.async_subscribe(self.hass, f"{self._base}/alarm", message_received)
+
+
+class SproeituinZonesSensor(SensorEntity):
+    """Aantal actieve zones."""
+    def __init__(self, hass, entry, base, name):
+        self.hass = hass
+        self._base = base
+        self._attr_name = f"{name} Zones"
+        self._attr_unique_id = f"{entry.entry_id}_zones"
+        self._attr_icon = "mdi:map-marker-multiple"
+        self._attr_native_value = None
+        self._extra = {}
+
+    @property
+    def extra_state_attributes(self):
+        return self._extra
+
+    async def async_added_to_hass(self):
+        @callback
+        def message_received(msg):
+            try:
+                data = json.loads(msg.payload)
+                actief = sum(1 for z in data if z.get("active", False))
+                self._attr_native_value = actief
+                self._extra = {"zones": data}
+                self.async_write_ha_state()
+            except Exception:
+                pass
+        await mqtt.async_subscribe(self.hass, f"{self._base}/zones", message_received)
 
 
 class SproeituinLogSensor(SensorEntity):

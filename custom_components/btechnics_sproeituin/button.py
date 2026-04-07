@@ -15,10 +15,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     name_slug = name.lower().replace(" ", "_")
     stap_entity = f"number.{name_slug}_jog_stapgrootte"
     async_add_entities([
-        SproeituinButton(hass, entry, base, name, "Start",    "mdi:play",          f"{base}/cmd/start", "start"),
-        SproeituinButton(hass, entry, base, name, "Stop",     "mdi:stop",          f"{base}/cmd/stop",  "stop"),
-        SproeituinButton(hass, entry, base, name, "Home",     "mdi:home",          f"{base}/cmd/home",  "home"),
-        SproeituinButton(hass, entry, base, name, "Noodstop", "mdi:alert-octagon", f"{base}/cmd/stop",  "stop"),
+        SproeituinButton(hass, entry, base, name, "Start",    "mdi:play",          f"{base}/cmd/start", ""),
+        SproeituinButton(hass, entry, base, name, "Stop",     "mdi:stop",          f"{base}/cmd/stop",  ""),
+        SproeituinButton(hass, entry, base, name, "Home",     "mdi:home",          f"{base}/cmd/home",  ""),
+        SproeituinButton(hass, entry, base, name, "Reset",    "mdi:restart",       f"{base}/cmd/reset", ""),
+        SproeituinButton(hass, entry, base, name, "Noodstop", "mdi:alert-octagon", f"{base}/cmd/stop",  ""),
+        SproeituinButton(hass, entry, base, name, "Demo",     "mdi:sprinkler",     f"{base}/cmd/demo",  ""),
         JogButton(hass, entry, base, name, "Jog X+", "mdi:arrow-right", "x",  1, stap_entity),
         JogButton(hass, entry, base, name, "Jog X-", "mdi:arrow-left",  "x", -1, stap_entity),
         JogButton(hass, entry, base, name, "Jog Y+", "mdi:arrow-up",    "y",  1, stap_entity),
@@ -32,7 +34,7 @@ class SproeituinButton(ButtonEntity):
         self._topic = topic
         self._payload = payload
         self._attr_name = f"{name} {label}"
-        self._attr_unique_id = f"{entry.entry_id}_btn_{label.lower()}"
+        self._attr_unique_id = f"{entry.entry_id}_btn_{label.lower().replace(' ', '_')}"
         self._attr_icon = icon
 
     async def async_press(self) -> None:
